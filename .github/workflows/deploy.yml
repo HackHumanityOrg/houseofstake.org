@@ -45,6 +45,10 @@ jobs:
           else
             echo "has_custom_domain=false" >> $GITHUB_OUTPUT
           fi
+          
+          # Also output repo name and owner for consistency
+          echo "repo_name=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+          echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
       - name: Set BASE_URL for PR preview
         if: github.event_name == 'pull_request_target' && github.event.action != 'closed'
@@ -145,6 +149,10 @@ jobs:
           else
             echo "has_custom_domain=false" >> $GITHUB_OUTPUT
           fi
+          
+          # Also output repo name and owner for consistency
+          echo "repo_name=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+          echo "owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
 
       - name: Set BASE_URL for PR preview
         run: |
@@ -203,9 +211,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          
-          # Remove old files (but keep pr-preview directory)
-          find . -maxdepth 1 -type f -delete
+          # Remove old files (but keep pr-preview directory and CNAME if exists)
+          find . -maxdepth 1 -type f ! -name 'CNAME' -delete
           find . -maxdepth 1 -type d ! -name '.git' ! -name '.' ! -name 'pr-preview' ! -name 'build' -exec rm -rf {} +
           
           # Copy new build files to root
@@ -257,9 +264,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Create PR preview directory
+          # PR previews always go in pr-preview directory at root
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PREVIEW_DIR="pr-preview/pr-${PR_NUMBER}"
+          
+          echo "Deploying to preview directory: ${PREVIEW_DIR}"
           
           # Verify build exists
           if [ ! -d "./pr-preview-build" ] || [ ! "$(ls -A ./pr-preview-build)" ]; then
@@ -374,9 +383,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Remove preview directory
+          # PR previews are always in pr-preview directory at root
           PR_NUMBER="${{ github.event.pull_request.number }}"
           PREVIEW_DIR="pr-preview/pr-${PR_NUMBER}"
+          
+          echo "Removing preview directory: ${PREVIEW_DIR}"
           
           if [ -d "${PREVIEW_DIR}" ]; then
             rm -rf "${PREVIEW_DIR}"
