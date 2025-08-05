@@ -3,7 +3,7 @@ import styles from './Roadmap.module.css';
 import {
   getHardcodedProjectData,
   RoadmapItem,
-  PROJECT_ICONS,
+  PROJECT_MAP,
 } from '../../services/github';
 import {
   CiCircleCheck,
@@ -16,15 +16,73 @@ import {
 const Roadmap: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [roadmapItems, setRoadmapItems] = useState<RoadmapItem[]>([]);
-  const [statusGroups, setStatusGroups] = useState<Map<string, RoadmapItem[]>>(
+  const [quarterGroups, setQuarterGroups] = useState<Map<string, RoadmapItem[]>>(
     new Map()
   );
-  const [availableStatuses, setAvailableStatuses] = useState<string[]>([]);
+  const [availableQuarters, setAvailableQuarters] = useState<string[]>([]);
   const [statusColors, setStatusColors] = useState<Map<string, string>>(
     new Map()
   );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get quarter from date
+  const getQuarterFromDate = (dateString: string | null | undefined): string | null => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const quarter = Math.floor(month / 3) + 1;
+    return `Q${quarter} ${year}`;
+  };
+
+  // Helper function to determine item's quarter
+  const getItemQuarter = (item: RoadmapItem): string => {
+    // Try to get quarter from various sources
+    if (item.quarter) return item.quarter;
+    
+    // Try start date
+    if (item.startDate) {
+      const quarter = getQuarterFromDate(item.startDate);
+      if (quarter) return quarter;
+    }
+    
+    // Try end date
+    if (item.endDate || item.dueDate) {
+      const quarter = getQuarterFromDate(item.endDate || item.dueDate);
+      if (quarter) return quarter;
+    }
+    
+    // Try closed date for completed items
+    if (item.closedAt && item.status.toLowerCase().includes('done')) {
+      const quarter = getQuarterFromDate(item.closedAt);
+      if (quarter) return quarter;
+    }
+    
+    // Default to current quarter
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentQuarter = Math.floor(currentMonth / 3) + 1;
+    return `Q${currentQuarter} ${currentYear}`;
+  };
+
+  // Get default quarters (current and next 3)
+  const getDefaultQuarters = (): string[] => {
+    const quarters: string[] = [];
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentQuarter = Math.floor(currentMonth / 3) + 1;
+    
+    for (let i = 0; i < 4; i++) {
+      const q = ((currentQuarter - 1 + i) % 4) + 1;
+      const y = currentYear + Math.floor((currentQuarter - 1 + i) / 4);
+      quarters.push(`Q${q} ${y}`);
+    }
+    
+    return quarters;
+  };
 
   // Use hardcoded data on component mount
   useEffect(() => {
@@ -33,31 +91,82 @@ const Roadmap: React.FC = () => {
         setIsLoading(true);
         const projectData = getHardcodedProjectData();
 
+        // This will throw if data is invalid, which is what we want
         if (projectData.error) {
           setError(projectData.error);
         } else {
-          setRoadmapItems(projectData.items);
+          // Add quarter information to items
+          const itemsWithQuarters = projectData.items.map(item => ({
+            ...item,
+            quarter: getItemQuarter(item),
+          }));
+          
+          setRoadmapItems(itemsWithQuarters);
           setStatusColors(projectData.statuses);
 
-          // Use columns from API if available, otherwise use ordered list
-          const statusOrder =
-            projectData.columns.length > 0
-              ? projectData.columns
-              : getStatusOrder(projectData.statuses);
-          setAvailableStatuses(statusOrder);
+          // Get quarters from data or use defaults
+          const quarters = projectData.quarters && projectData.quarters.length > 0
+            ? projectData.quarters
+            : getDefaultQuarters();
+          
+          setAvailableQuarters(quarters);
 
-          // Group items by status
+          // Define status priority for sorting
+          const statusPriority: Record<string, number> = {
+            'done': 1,
+            'complete': 1,
+            'closed': 1,
+            'this sprint': 2,
+            'current': 2,
+            'in progress': 2,
+            'next sprint/on deck': 3,
+            'next': 3,
+            'on deck': 3,
+            'upcoming': 3,
+            'paused/blocked': 4,
+            'paused': 4,
+            'blocked': 4,
+            'todo': 5,
+            'backlog': 5,
+          };
+
+          // Helper function to get status priority
+          const getStatusPriority = (status: string): number => {
+            const statusLower = status.toLowerCase();
+            for (const [key, priority] of Object.entries(statusPriority)) {
+              if (statusLower.includes(key)) {
+                return priority;
+              }
+            }
+            return 99; // Default priority for unknown statuses
+          };
+
+          // Group items by quarter
           const groups = new Map<string, RoadmapItem[]>();
-          // Initialize all statuses with empty arrays
-          statusOrder.forEach((status) => {
-            groups.set(status, []);
+          
+          // Initialize all quarters with empty arrays
+          quarters.forEach((quarter) => {
+            groups.set(quarter, []);
           });
-          // Add items to their respective groups
-          projectData.items.forEach((item) => {
-            const existing = groups.get(item.status) || [];
-            groups.set(item.status, [...existing, item]);
+          
+          // Add items to their respective quarters
+          itemsWithQuarters.forEach((item) => {
+            const itemQuarter = item.quarter || getItemQuarter(item);
+            const existing = groups.get(itemQuarter) || [];
+            groups.set(itemQuarter, [...existing, item]);
           });
-          setStatusGroups(groups);
+          
+          // Sort items within each quarter by status priority
+          groups.forEach((items, quarter) => {
+            const sortedItems = items.sort((a, b) => {
+              const priorityA = getStatusPriority(a.status);
+              const priorityB = getStatusPriority(b.status);
+              return priorityA - priorityB;
+            });
+            groups.set(quarter, sortedItems);
+          });
+          
+          setQuarterGroups(groups);
         }
       } catch (err) {
         console.error('Failed to load roadmap data:', err);
@@ -69,42 +178,6 @@ const Roadmap: React.FC = () => {
 
     loadRoadmapData();
   }, []);
-
-  // Get ordered list of statuses
-  const getStatusOrder = (statuses: Map<string, string>): string[] => {
-    const statusArray = Array.from(statuses.keys());
-
-    // Define priority order for known status types
-    const orderPriority: Record<string, number> = {
-      todo: 1,
-      backlog: 1,
-      next: 2,
-      'on deck': 2,
-      upcoming: 2,
-      'this sprint': 3,
-      current: 3,
-      'in progress': 3,
-      paused: 4,
-      blocked: 4,
-      done: 5,
-      complete: 5,
-      closed: 5,
-    };
-
-    // Sort statuses based on priority
-    return statusArray.sort((a, b) => {
-      const aPriority =
-        Object.entries(orderPriority).find(([key]) =>
-          a.toLowerCase().includes(key)
-        )?.[1] || 99;
-      const bPriority =
-        Object.entries(orderPriority).find(([key]) =>
-          b.toLowerCase().includes(key)
-        )?.[1] || 99;
-
-      return aPriority - bPriority;
-    });
-  };
 
   // Get appropriate icon for status
   const getStatusIcon = (status: string, color: string) => {
@@ -145,6 +218,16 @@ const Roadmap: React.FC = () => {
 
     // Todo/Backlog statuses (default) - circle icon
     return <CiCircleMore {...iconProps} />;
+  };
+
+  // Check if quarter is current
+  const isCurrentQuarter = (quarter: string): boolean => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const currentQ = Math.floor(currentMonth / 3) + 1;
+    const currentQuarter = `Q${currentQ} ${currentYear}`;
+    return quarter === currentQuarter;
   };
 
   const handlePrevious = () => {
@@ -258,73 +341,73 @@ const Roadmap: React.FC = () => {
 
       <div className={styles.roadmapContent}>
         <div className={styles.timelineContainer} ref={containerRef}>
-          {availableStatuses.map((status, statusIndex) => {
-            const items = statusGroups.get(status) || [];
-            const isCurrentStatus =
-              status.toLowerCase().includes('this sprint') ||
-              status.toLowerCase().includes('current') ||
-              status.toLowerCase().includes('in progress');
+          {availableQuarters.map((quarter, quarterIndex) => {
+            const items = quarterGroups.get(quarter) || [];
+            const isCurrent = isCurrentQuarter(quarter);
 
             return (
-              <div key={status} className={styles.statusColumn}>
+              <div key={quarter} className={styles.statusColumn}>
                 <div className={styles.statusHeader}>
                   <div className={styles.timelineLine} />
                   <div
-                    className={`${styles.timelineDot} ${isCurrentStatus ? styles.current : ''}`}
+                    className={`${styles.timelineDot} ${isCurrent ? styles.current : ''}`}
                   />
                   <div className={styles.timelineLine} />
                 </div>
-                <h3 className={styles.statusLabel}>{status}</h3>
+                <h3 className={styles.statusLabel}>{quarter}</h3>
                 <div className={styles.cardsContainer}>
                   {items.length === 0 ? (
                     <div className={styles.emptyState}>
                       <span>No items</span>
                     </div>
                   ) : (
-                    items.map((item) => (
-                      <a
-                        key={item.id}
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.roadmapCard}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        <div className={styles.cardContent}>
-                          <div className={styles.categoryBadge}>
-                            {item.projectNumber &&
-                              PROJECT_ICONS[item.projectNumber] && (
+                    items.map((item) => {
+                      const projectConfig = PROJECT_MAP[item.projectNumber || 1];
+                      return (
+                        <a
+                          key={item.id}
+                          href={item.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.roadmapCard}
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <div className={styles.cardContent}>
+                            <div className={styles.categoryBadge}>
+                              {projectConfig?.icon && (
                                 <img
-                                  src={PROJECT_ICONS[item.projectNumber]}
+                                  src={projectConfig.icon}
                                   alt="Project icon"
                                   width="14"
                                   height="14"
                                 />
                               )}
-                            <span
-                              className={`${styles.categoryText} ${styles[item.category]}`}
-                            >
-                              {item.category === 'governance'
-                                ? 'GOVERNANCE & PRODUCT'
-                                : 'AI & RESEARCH'}
+                              <span
+                                className={`${styles.categoryText} ${styles[item.category]}`}
+                              >
+                                {projectConfig?.name?.toUpperCase() || 
+                                 (item.category === 'governance'
+                                  ? 'GOVERNANCE & PRODUCT'
+                                  : 'AI & RESEARCH')}
+                              </span>
+                            </div>
+                            <h4 className={styles.cardTitle}>{item.title}</h4>
+                            <span className={styles.issueNumber}>
+                              #{item.issueNumber}
                             </span>
                           </div>
-                          <h4 className={styles.cardTitle}>{item.title}</h4>
-                          <span className={styles.issueNumber}>
-                            #{item.issueNumber}
-                          </span>
-                        </div>
-                        <div
-                          className={styles.statusBadge}
-                          style={{ backgroundColor: item.statusColor }}
-                        >
-                          {getStatusIcon(item.status, item.statusTextColor)}
-                          <span style={{ color: item.statusTextColor }}>
-                            {item.status}
-                          </span>
-                        </div>
-                      </a>
-                    ))
+                          <div
+                            className={styles.statusBadge}
+                            style={{ backgroundColor: item.statusColor }}
+                          >
+                            {getStatusIcon(item.status, item.statusTextColor)}
+                            <span style={{ color: item.statusTextColor }}>
+                              {item.status}
+                            </span>
+                          </div>
+                        </a>
+                      );
+                    })
                   )}
                 </div>
               </div>

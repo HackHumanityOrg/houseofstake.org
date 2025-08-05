@@ -1,0 +1,293 @@
+{
+  "items": [
+    {
+      "id": "PVTI_example_gov_done_1",
+      "title": "Launch House of Stake website",
+      "status": "Done",
+      "statusColor": "#C7F5D8",
+      "statusTextColor": "#096D50",
+      "category": "governance",
+      "issueNumber": 1,
+      "url": "https://github.com/houseofstake/pm/issues/1",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-06-15T10:00:00Z",
+      "closedAt": "2025-07-20T15:30:00Z",
+      "startDate": "2025-06-20",
+      "endDate": "2025-07-20",
+      "quarter": "Q3 2025",
+      "iteration": {
+        "title": "Sprint 1",
+        "startDate": "2025-06-15",
+        "duration": 14
+      }
+    },
+    {
+      "id": "PVTI_example_research_done_1",
+      "title": "Initial AI governance research paper",
+      "status": "Done",
+      "statusColor": "#C7F5D8",
+      "statusTextColor": "#096D50",
+      "category": "research",
+      "issueNumber": 101,
+      "url": "https://github.com/houseofstake/pm/issues/101",
+      "projectNumber": 2,
+      "projectName": "AI & Research",
+      "createdAt": "2025-06-01T09:00:00Z",
+      "closedAt": "2025-07-15T14:00:00Z",
+      "startDate": "2025-06-01",
+      "endDate": "2025-07-15",
+      "quarter": "Q3 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_gov_progress_1",
+      "title": "Implement veNEAR staking mechanism",
+      "status": "This Sprint",
+      "statusColor": "#BAE6FD",
+      "statusTextColor": "#0369A1",
+      "category": "governance",
+      "issueNumber": 15,
+      "url": "https://github.com/houseofstake/pm/issues/15",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-07-25T11:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-08-01",
+      "endDate": "2025-08-15",
+      "quarter": "Q3 2025",
+      "iteration": {
+        "title": "Sprint 5",
+        "startDate": "2025-08-01",
+        "duration": 14
+      }
+    },
+    {
+      "id": "PVTI_example_research_progress_1",
+      "title": "ML model for proposal impact analysis",
+      "status": "This Sprint",
+      "statusColor": "#BAE6FD",
+      "statusTextColor": "#0369A1",
+      "category": "research",
+      "issueNumber": 105,
+      "url": "https://github.com/houseofstake/pm/issues/105",
+      "projectNumber": 2,
+      "projectName": "AI & Research",
+      "createdAt": "2025-07-28T10:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-08-05",
+      "endDate": "2025-08-20",
+      "quarter": "Q3 2025",
+      "iteration": {
+        "title": "Research Sprint 3",
+        "startDate": "2025-08-05",
+        "duration": 14
+      }
+    },
+    {
+      "id": "PVTI_example_gov_next_1",
+      "title": "Treasury management framework",
+      "status": "Next Sprint/On Deck",
+      "statusColor": "#E9D5FF",
+      "statusTextColor": "#6B21A8",
+      "category": "governance",
+      "issueNumber": 22,
+      "url": "https://github.com/houseofstake/pm/issues/22",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-08-01T09:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-08-15",
+      "endDate": "2025-09-01",
+      "quarter": "Q3 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_gov_blocked_1",
+      "title": "Integration with NEAR Protocol mainnet",
+      "status": "Paused/Blocked",
+      "statusColor": "#FED7AA",
+      "statusTextColor": "#C2410C",
+      "category": "governance",
+      "issueNumber": 18,
+      "url": "https://github.com/houseofstake/pm/issues/18",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-07-20T12:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-07-25",
+      "endDate": null,
+      "quarter": "Q3 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_research_todo_1",
+      "title": "Comparative analysis of DAO governance models",
+      "status": "Todo",
+      "statusColor": "#E2E8F0",
+      "statusTextColor": "#475569",
+      "category": "research",
+      "issueNumber": 110,
+      "url": "https://github.com/houseofstake/pm/issues/110",
+      "projectNumber": 2,
+      "projectName": "AI & Research",
+      "createdAt": "2025-08-02T14:00:00Z",
+      "closedAt": null,
+      "startDate": null,
+      "endDate": null,
+      "quarter": "Q3 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_gov_q4_progress",
+      "title": "Working Group onboarding system",
+      "status": "This Sprint",
+      "statusColor": "#BAE6FD",
+      "statusTextColor": "#0369A1",
+      "category": "governance",
+      "issueNumber": 35,
+      "url": "https://github.com/houseofstake/pm/issues/35",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-09-01T10:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-10-01",
+      "endDate": "2025-10-15",
+      "quarter": "Q4 2025",
+      "iteration": {
+        "title": "Sprint 8",
+        "startDate": "2025-10-01",
+        "duration": 14
+      }
+    },
+    {
+      "id": "PVTI_example_research_q4_next",
+      "title": "AI-powered proposal summarization tool",
+      "status": "Next Sprint/On Deck",
+      "statusColor": "#E9D5FF",
+      "statusTextColor": "#6B21A8",
+      "category": "research",
+      "issueNumber": 115,
+      "url": "https://github.com/houseofstake/pm/issues/115",
+      "projectNumber": 2,
+      "projectName": "AI & Research",
+      "createdAt": "2025-09-05T11:00:00Z",
+      "closedAt": null,
+      "startDate": "2025-10-15",
+      "endDate": "2025-11-01",
+      "quarter": "Q4 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_gov_q4_todo",
+      "title": "Annual governance report template",
+      "status": "Todo",
+      "statusColor": "#E2E8F0",
+      "statusTextColor": "#475569",
+      "category": "governance",
+      "issueNumber": 40,
+      "url": "https://github.com/houseofstake/pm/issues/40",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-09-10T09:00:00Z",
+      "closedAt": null,
+      "startDate": null,
+      "endDate": null,
+      "quarter": "Q4 2025",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_research_q1_2026",
+      "title": "Decentralized identity integration research",
+      "status": "Todo",
+      "statusColor": "#E2E8F0",
+      "statusTextColor": "#475569",
+      "category": "research",
+      "issueNumber": 120,
+      "url": "https://github.com/houseofstake/pm/issues/120",
+      "projectNumber": 2,
+      "projectName": "AI & Research",
+      "createdAt": "2025-09-15T10:00:00Z",
+      "closedAt": null,
+      "startDate": "2026-01-10",
+      "endDate": "2026-02-28",
+      "quarter": "Q1 2026",
+      "iteration": null
+    },
+    {
+      "id": "PVTI_example_gov_q1_2026",
+      "title": "Cross-chain governance bridge",
+      "status": "Todo",
+      "statusColor": "#E2E8F0",
+      "statusTextColor": "#475569",
+      "category": "governance",
+      "issueNumber": 50,
+      "url": "https://github.com/houseofstake/pm/issues/50",
+      "projectNumber": 1,
+      "projectName": "Governance & Product",
+      "createdAt": "2025-09-20T11:00:00Z",
+      "closedAt": null,
+      "startDate": "2026-01-15",
+      "endDate": "2026-03-15",
+      "quarter": "Q1 2026",
+      "iteration": null
+    }
+  ],
+  "statuses": [
+    ["Todo", "#E2E8F0"],
+    ["Next Sprint/On Deck", "#E9D5FF"],
+    ["This Sprint", "#BAE6FD"],
+    ["Paused/Blocked", "#FED7AA"],
+    ["Done", "#C7F5D8"]
+  ],
+  "columns": [
+    "Todo",
+    "Next Sprint/On Deck",
+    "This Sprint",
+    "Paused/Blocked",
+    "Done"
+  ],
+  "quarters": [
+    "Q3 2025",
+    "Q4 2025",
+    "Q1 2026",
+    "Q2 2026"
+  ],
+  "projects": {
+    "1": {
+      "name": "Governance & Product",
+      "statuses": [
+        ["Todo", "#E2E8F0"],
+        ["Next Sprint/On Deck", "#E9D5FF"],
+        ["This Sprint", "#BAE6FD"],
+        ["Paused/Blocked", "#FED7AA"],
+        ["Done", "#C7F5D8"]
+      ],
+      "columns": [
+        "Todo",
+        "Next Sprint/On Deck",
+        "This Sprint",
+        "Paused/Blocked",
+        "Done"
+      ]
+    },
+    "2": {
+      "name": "AI & Research",
+      "statuses": [
+        ["Todo", "#E2E8F0"],
+        ["Next Sprint/On Deck", "#E9D5FF"],
+        ["This Sprint", "#BAE6FD"],
+        ["Paused/Blocked", "#FED7AA"],
+        ["Done", "#C7F5D8"]
+      ],
+      "columns": [
+        "Todo",
+        "Next Sprint/On Deck",
+        "This Sprint",
+        "Paused/Blocked",
+        "Done"
+      ]
+    }
+  },
+  "lastUpdated": "2025-08-05T15:00:00.000Z"
+}

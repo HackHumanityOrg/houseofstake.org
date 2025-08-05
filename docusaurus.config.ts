@@ -39,10 +39,12 @@ const config: Config = {
     locales: ['en'],
   },
 
-  // Custom fields to pass environment variables to the client
-  customFields: {
-    githubToken: process.env.GITHUB_TOKEN || '',
-  },
+  // Custom fields (removed githubToken for security)
+  customFields: {},
+
+  plugins: [
+    './plugins/github-roadmap-plugin',
+  ],
 
   presets: [
     [

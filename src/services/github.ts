@@ -1,13 +1,59 @@
-// WARNING: This token is exposed in the browser - NOT SECURE FOR PRODUCTION
-// TODO: Move this to a serverless function or backend API
+import { z } from 'zod';
 
-// Import Docusaurus config to access custom fields
-import docusaurusConfig from '@generated/docusaurus.config';
+// Import static roadmap data generated at build time
+// @ts-ignore - JSON imports are handled by webpack
+import roadmapDataJson from '@site/static/data/github-roadmap.json';
 
-// Get GitHub token from Docusaurus custom fields (set at build time)
-const GITHUB_TOKEN =
-  (docusaurusConfig.customFields?.githubToken as string) || '';
+// Zod schemas for roadmap data validation
+const IterationSchema = z.object({
+  title: z.string(),
+  startDate: z.string(),
+  duration: z.number(),
+});
 
+const RoadmapItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  status: z.string(),
+  statusColor: z.string(),
+  statusTextColor: z.string(),
+  category: z.enum(['governance', 'research']),
+  issueNumber: z.number(),
+  url: z.string(),
+  projectNumber: z.number().optional(),
+  projectName: z.string().optional(),
+  createdAt: z.string().optional(),
+  closedAt: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
+  quarter: z.string().nullable().optional(),
+  iteration: IterationSchema.nullable().optional(),
+});
+
+const ProjectInfoSchema = z.object({
+  name: z.string(),
+  statuses: z.array(z.tuple([z.string(), z.string()])),
+  columns: z.array(z.string()),
+});
+
+const RoadmapDataJsonSchema = z.object({
+  items: z.array(RoadmapItemSchema),
+  statuses: z.array(z.tuple([z.string(), z.string()])),
+  columns: z.array(z.string()),
+  quarters: z.array(z.string()).optional(),
+  projects: z.record(z.string(), ProjectInfoSchema).optional(),
+  lastUpdated: z.string(),
+});
+
+// Type inference from Zod schemas
+type RoadmapDataJson = z.infer<typeof RoadmapDataJsonSchema>;
+
+// Export types inferred from Zod schemas
+export type RoadmapItem = z.infer<typeof RoadmapItemSchema>;
+export type Iteration = z.infer<typeof IterationSchema>;
+
+// GitHub API types (for the dynamic fetch function)
 export interface GitHubProjectItem {
   id: string;
   content: {
@@ -27,6 +73,10 @@ export interface GitHubProjectItem {
     nodes: Array<{
       __typename: string;
       name?: string;
+      date?: string;
+      title?: string;
+      startDate?: string;
+      duration?: number;
       field?: {
         name: string;
       };
@@ -34,22 +84,16 @@ export interface GitHubProjectItem {
   };
 }
 
-export interface RoadmapItem {
-  id: string;
-  title: string;
-  status: string;
-  statusColor: string;
-  statusTextColor: string;
-  category: 'governance' | 'research';
-  issueNumber: number;
-  url: string;
-  projectNumber?: number;
-}
-
 export interface GitHubProjectData {
   items: RoadmapItem[];
   statuses: Map<string, string>; // status name -> color
   columns: string[]; // ordered list of column names
+  quarters?: string[]; // ordered list of quarters
+  projects?: Record<number, {
+    name: string;
+    statuses: Array<[string, string]>;
+    columns: string[];
+  }>;
   error?: string;
 }
 
@@ -57,10 +101,26 @@ const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
 const ORG_NAME = 'houseofstake';
 const PROJECT_NUMBER = 1;
 
-// Map project numbers to their icons
-export const PROJECT_ICONS: Record<number, string> = {
-  1: '/img/governance-icon.svg', // HoS Core Team Kanban - Governance icon
-};
+// Project configuration
+export const PROJECTS_CONFIG = [
+  {
+    number: 1,
+    name: 'Governance & Product',
+    category: 'governance',
+    icon: '/img/governance-icon.svg',
+  },
+  {
+    number: 2,
+    name: 'AI & Research',
+    category: 'research',
+    icon: '/img/research-icon.svg',
+  },
+];
+
+// Map project numbers to their configs
+export const PROJECT_MAP = Object.fromEntries(
+  PROJECTS_CONFIG.map(p => [p.number, p])
+);
 
 // Hardcoded colors for kanban states (matching Figma design)
 const KANBAN_STATE_COLORS: Record<string, string> = {
@@ -80,430 +140,63 @@ const KANBAN_TEXT_COLORS: Record<string, string> = {
   Done: '#096D50', // Dark green from Figma
 };
 
-// Hardcoded data from the GitHub API (fetched on August 4, 2025)
-export function getHardcodedProjectData(): GitHubProjectData {
-  const statuses = new Map<string, string>([
-    ['Todo', KANBAN_STATE_COLORS['Todo']],
-    ['Next Sprint/On Deck', KANBAN_STATE_COLORS['Next Sprint/On Deck']],
-    ['This Sprint', KANBAN_STATE_COLORS['This Sprint']],
-    ['Paused/Blocked', KANBAN_STATE_COLORS['Paused/Blocked']],
-    ['Done', KANBAN_STATE_COLORS['Done']],
-  ]);
-
-  const columns = [
-    'Todo',
-    'Next Sprint/On Deck',
-    'This Sprint',
-    'Paused/Blocked',
-    'Done',
-  ];
-
-  const items: RoadmapItem[] = [
-    // Todo items
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2b8',
-      title: 'Review existing proposals',
-      status: 'Todo',
-      statusColor: KANBAN_STATE_COLORS['Todo'],
-      statusTextColor: KANBAN_TEXT_COLORS['Todo'],
-      category: 'governance',
-      issueNumber: 8,
-      url: 'https://github.com/houseofstake/pm/issues/8',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdBMrk',
-      title: 'Add support for self-executing proposals',
-      status: 'Todo',
-      statusColor: KANBAN_STATE_COLORS['Todo'],
-      statusTextColor: KANBAN_TEXT_COLORS['Todo'],
-      category: 'governance',
-      issueNumber: 14,
-      url: 'https://github.com/houseofstake/pm/issues/14',
-      projectNumber: 1,
-    },
-    // Next Sprint/On Deck items
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2cc',
-      title: 'Structure HoS Foundation Fireblocks vault',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'governance',
-      issueNumber: 9,
-      url: 'https://github.com/houseofstake/pm/issues/9',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdBLOc',
-      title: 'Org design',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'governance',
-      issueNumber: 10,
-      url: 'https://github.com/houseofstake/pm/issues/10',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2Gg',
-      title: 'Research roadmap draft',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'research',
-      issueNumber: 5,
-      url: 'https://github.com/houseofstake/pm/issues/5',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2Ck',
-      title: 'Code of Conduct policy document',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'governance',
-      issueNumber: 2,
-      url: 'https://github.com/houseofstake/pm/issues/2',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdHHIU',
-      title: 'Staker incentives for HoS 1.0',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'governance',
-      issueNumber: 18,
-      url: 'https://github.com/houseofstake/pm/issues/18',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdJ6C8',
-      title: 'Content Review: Core Sections of the House of Stake Website',
-      status: 'Next Sprint/On Deck',
-      statusColor: KANBAN_STATE_COLORS['Next Sprint/On Deck'],
-      statusTextColor: KANBAN_TEXT_COLORS['Next Sprint/On Deck'],
-      category: 'governance',
-      issueNumber: 21,
-      url: 'https://github.com/houseofstake/pm/issues/21',
-      projectNumber: 1,
-    },
-    // This Sprint items
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_15c',
-      title: 'MVV (Mission, Vision, Values)',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 1,
-      url: 'https://github.com/houseofstake/pm/issues/1',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2GQ',
-      title: 'Product roadmap draft',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 4,
-      url: 'https://github.com/houseofstake/pm/issues/4',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2Dg',
-      title: 'Conflict of Interest policy document',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 3,
-      url: 'https://github.com/houseofstake/pm/issues/3',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdBL7o',
-      title: 'Proposal template',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 12,
-      url: 'https://github.com/houseofstake/pm/issues/12',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdBMW8',
-      title: 'Frontend terms of use',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 13,
-      url: 'https://github.com/houseofstake/pm/issues/13',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdEEFc',
-      title: 'HoS launch stakeholder support',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 16,
-      url: 'https://github.com/houseofstake/pm/issues/16',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdDjS8',
-      title: 'HoS Website',
-      status: 'This Sprint',
-      statusColor: KANBAN_STATE_COLORS['This Sprint'],
-      statusTextColor: KANBAN_TEXT_COLORS['This Sprint'],
-      category: 'governance',
-      issueNumber: 15,
-      url: 'https://github.com/houseofstake/pm/issues/15',
-      projectNumber: 1,
-    },
-    // Paused/Blocked items
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdHHYI',
-      title: 'NF HoS team updated budget',
-      status: 'Paused/Blocked',
-      statusColor: KANBAN_STATE_COLORS['Paused/Blocked'],
-      statusTextColor: KANBAN_TEXT_COLORS['Paused/Blocked'],
-      category: 'governance',
-      issueNumber: 19,
-      url: 'https://github.com/houseofstake/pm/issues/19',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdNKtU',
-      title: 'Complete setup of Security Council and Screening Committee',
-      status: 'Paused/Blocked',
-      statusColor: KANBAN_STATE_COLORS['Paused/Blocked'],
-      statusTextColor: KANBAN_TEXT_COLORS['Paused/Blocked'],
-      category: 'governance',
-      issueNumber: 22,
-      url: 'https://github.com/houseofstake/pm/issues/22',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdHIX0',
-      title: 'Finalize HoS 1.0 params',
-      status: 'Paused/Blocked',
-      statusColor: KANBAN_STATE_COLORS['Paused/Blocked'],
-      statusTextColor: KANBAN_TEXT_COLORS['Paused/Blocked'],
-      category: 'governance',
-      issueNumber: 20,
-      url: 'https://github.com/houseofstake/pm/issues/20',
-      projectNumber: 1,
-    },
-    // Done items
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2H8',
-      title: 'Bootstrap basic PM',
-      status: 'Done',
-      statusColor: KANBAN_STATE_COLORS['Done'],
-      statusTextColor: KANBAN_TEXT_COLORS['Done'],
-      category: 'governance',
-      issueNumber: 6,
-      url: 'https://github.com/houseofstake/pm/issues/6',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4Mnzgc_2LU',
-      title: 'Launch plan',
-      status: 'Done',
-      statusColor: KANBAN_STATE_COLORS['Done'],
-      statusTextColor: KANBAN_TEXT_COLORS['Done'],
-      category: 'governance',
-      issueNumber: 7,
-      url: 'https://github.com/houseofstake/pm/issues/7',
-      projectNumber: 1,
-    },
-    {
-      id: 'PVTI_lADODMMfi84A-4MnzgdNLCI',
-      title: 'Draft launch blog post and X thread',
-      status: 'Done',
-      statusColor: KANBAN_STATE_COLORS['Done'],
-      statusTextColor: KANBAN_TEXT_COLORS['Done'],
-      category: 'governance',
-      issueNumber: 23,
-      url: 'https://github.com/houseofstake/pm/issues/23',
-      projectNumber: 1,
-    },
-  ];
-
-  return {
-    items,
-    statuses,
-    columns,
-  };
-}
-
-// Dynamic fetch function (kept for future use but not used by default)
-export async function fetchGitHubProjectData(): Promise<GitHubProjectData> {
-  if (!GITHUB_TOKEN) {
-    console.warn(
-      'GitHub token not found. Please set GITHUB_TOKEN in your environment.'
-    );
-    return {
-      items: [],
-      statuses: new Map(),
-      columns: [],
-      error:
-        'GitHub token not configured. See GITHUB_TOKEN_SETUP.md for instructions.',
-    };
-  }
-
+// Get project data from static JSON file (fetched at build time)
+export function getStaticProjectData(): GitHubProjectData {
   try {
-    const query = `
-      query($org: String!, $projectNumber: Int!) {
-        organization(login: $org) {
-          projectV2(number: $projectNumber) {
-            id
-            title
-            items(first: 100) {
-              nodes {
-                id
-                content {
-                  __typename
-                  ... on Issue {
-                    title
-                    number
-                    state
-                    url
-                    labels(first: 10) {
-                      nodes {
-                        name
-                        color
-                      }
-                    }
-                  }
-                  ... on PullRequest {
-                    title
-                    number
-                    state
-                    url
-                    labels(first: 10) {
-                      nodes {
-                        name
-                        color
-                      }
-                    }
-                  }
-                }
-                fieldValues(first: 10) {
-                  nodes {
-                    __typename
-                    ... on ProjectV2ItemFieldSingleSelectValue {
-                      name
-                      field {
-                        ... on ProjectV2SingleSelectField {
-                          name
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-            fields(first: 20) {
-              nodes {
-                __typename
-                ... on ProjectV2SingleSelectField {
-                  id
-                  name
-                  options {
-                    id
-                    name
-                    color
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const response = await fetch(GITHUB_GRAPHQL_API, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        variables: {
-          org: ORG_NAME,
-          projectNumber: PROJECT_NUMBER,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`GitHub API responded with ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.errors) {
-      throw new Error(data.errors[0].message);
-    }
-
-    const project = data.data?.organization?.projectV2;
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    // Extract status field and its options
-    const statusField = project.fields.nodes.find(
-      (field: any) =>
-        field.__typename === 'ProjectV2SingleSelectField' &&
-        field.name === 'Status'
-    );
-
+    // Validate JSON data with Zod - will throw with detailed errors if invalid
+    const validatedData = RoadmapDataJsonSchema.parse(roadmapDataJson);
+    
+    // Convert statuses array to Map
     const statuses = new Map<string, string>();
-    const columns: string[] = [];
-
-    if (statusField && statusField.options) {
-      statusField.options.forEach((option: any) => {
-        // Use hardcoded color for known states, fallback to a default gray
-        const color = KANBAN_STATE_COLORS[option.name] || '#94A3B8';
-        statuses.set(option.name, color);
-        columns.push(option.name);
-      });
-    }
-
-    // If no columns found, use default kanban states
-    if (columns.length === 0) {
-      Object.entries(KANBAN_STATE_COLORS).forEach(([state, color]) => {
-        statuses.set(state, color);
-        columns.push(state);
-      });
-    }
-
-    // Transform project items to roadmap items
-    const items = transformProjectItems(project.items.nodes, statuses);
+    validatedData.statuses.forEach(([key, value]) => {
+      statuses.set(key, value);
+    });
+    
+    // Convert number keys to numbers for projects if needed
+    const projects = validatedData.projects ? 
+      Object.fromEntries(
+        Object.entries(validatedData.projects).map(([key, value]) => [
+          parseInt(key, 10),
+          value
+        ])
+      ) : undefined;
 
     return {
-      items,
+      items: validatedData.items,
       statuses,
-      columns,
+      columns: validatedData.columns,
+      quarters: validatedData.quarters,
+      projects: projects as Record<number, {
+        name: string;
+        statuses: Array<[string, string]>;
+        columns: string[];
+      }> | undefined,
     };
   } catch (error) {
-    console.error('Error fetching GitHub project data:', error);
-    return {
-      items: [],
-      statuses: new Map(),
-      columns: [],
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
+    // Zod errors have detailed information about what failed
+    if (error instanceof z.ZodError) {
+      const errorMessages = error.issues.map(err => 
+        `${err.path.join('.')}: ${err.message}`
+      ).join('\n');
+      console.error('FATAL: Invalid roadmap data structure:\n', errorMessages);
+      throw new Error(`Invalid roadmap data:\n${errorMessages}`);
+    }
+    
+    // Re-throw other errors
+    console.error('FATAL: Failed to load roadmap data:', error);
+    throw error;
   }
+}
+
+// Export the static data function as the default data provider
+export const getHardcodedProjectData = getStaticProjectData;
+
+// Dynamic fetch function (kept for reference but should not be used in production)
+// This function would expose the GitHub token in the browser
+export async function fetchGitHubProjectData(): Promise<GitHubProjectData> {
+  console.warn('Dynamic GitHub fetching is disabled for security reasons.');
+  console.warn('Use build-time data fetching instead.');
+  return getStaticProjectData();
 }
 
 // Transform project items from GraphQL to roadmap format
