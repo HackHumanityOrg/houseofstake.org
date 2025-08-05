@@ -126,6 +126,7 @@ jobs:
         if: github.event_name != 'pull_request_target' || github.event.action != 'closed'
         env:
           NODE_ENV: production
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build
 
       - name: Upload artifact
@@ -210,6 +211,7 @@ jobs:
       - name: Build Docusaurus
         env:
           NODE_ENV: production
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build
 
       - name: Upload artifact
